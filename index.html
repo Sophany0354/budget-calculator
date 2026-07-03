@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ledger — Spending Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --paper: #f6f1e7;
+        --paper-line: #e3dcc9;
+        --ink: #2b2620;
+        --ink-soft: #6b6354;
+        --coral: #e8806b;
+        --coral-soft: #f6d9cf;
+        --green: #5c7a5a;
+        --card: #fffcf5;
+        --radius: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background:
+          linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 32px,
+          var(--paper);
+        color: var(--ink);
+        font-family: "Inter", sans-serif;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      header {
+        margin-bottom: 36px;
+      }
+      .eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--coral);
+        font-weight: 700;
+      }
+      h1 {
+        font-family: "Fraunces", serif;
+        font-size: 42px;
+        font-weight: 700;
+        margin: 6px 0 4px;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        color: var(--ink-soft);
+        font-size: 15px;
+        margin: 0;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--paper-line);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: 0 1px 0 rgba(43, 38, 32, 0.04);
+      }
+      .grid {
+        display: grid;
+        gap: 20px;
+      }
+      .grid-2 {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+      @media (max-width: 760px) {
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      label {
+        display: block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin-bottom: 6px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--paper-line);
+        border-radius: 7px;
+        background: #fff;
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      input:focus,
+      select:focus {
+        outline: 2px solid var(--coral-soft);
+        border-color: var(--coral);
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 10px;
+        align-items: end;
+        margin-top: 14px;
+      }
+      @media (max-width: 600px) {
+        .row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      button {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        border-radius: 7px;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition:
+          transform 0.08s ease,
+          opacity 0.15s ease;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+      .btn-primary {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .btn-primary:hover {
+        opacity: 0.88;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--ink-soft);
+        border: 1px solid var(--paper-line);
+      }
+      .btn-ghost:hover {
+        border-color: var(--coral);
+        color: var(--coral);
+      }
+
+      .section-title {
+        font-family: "Fraunces", serif;
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title .num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        color: var(--coral);
+        border: 1px solid var(--coral);
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .stat-row {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      .stat {
+        flex: 1;
+        min-width: 140px;
+        background: var(--paper);
+        border: 1px dashed var(--paper-line);
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .stat .label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .stat .value {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .stat.left .value {
+        color: var(--green);
+      }
+      .stat.spent .value {
+        color: var(--coral);
+      }
+
+      .toggle {
+        display: inline-flex;
+        border: 1px solid var(--paper-line);
+        border-radius: 7px;
+        overflow: hidden;
+      }
+      .toggle button {
+        background: transparent;
+        color: var(--ink-soft);
+        border-radius: 0;
+        padding: 7px 14px;
+        font-size: 13px;
+      }
+      .toggle button.active {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 6px;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        border-bottom: 1px solid var(--paper-line);
+        padding: 8px 6px;
+      }
+      td {
+        padding: 10px 6px;
+        border-bottom: 1px solid var(--paper-line);
+      }
+      td.amt {
+        font-family: "JetBrains Mono", monospace;
+        text-align: right;
+      }
+      tr:hover td {
+        background: rgba(232, 128, 107, 0.05);
+      }
+      .tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: var(--coral-soft);
+        color: #9c4a35;
+      }
+      .del {
+        background: none;
+        border: none;
+        color: var(--ink-soft);
+        cursor: pointer;
+        font-size: 13px;
+        padding: 4px 6px;
+      }
+      .del:hover {
+        color: var(--coral);
+      }
+      .empty {
+        color: var(--ink-soft);
+        font-size: 14px;
+        font-style: italic;
+        padding: 20px 0;
+        text-align: center;
+      }
+
+      footer {
+        margin-top: 40px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
+      }
+      canvas {
+        max-height: 240px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="eyebrow">PayCheck Routine Calculation Sheet:</div>
+        <h1>Where did it go?</h1>
+        <p class="sub">
+          Log your income and spending, see exactly what's left by month or by
+          year.
+        </p>
+      </header>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="section-title"><span class="num">1</span>Income</div>
+          <label for="income">Take home pay</label>
+          <div style="display: flex; gap: 10px">
+            <input id="income" type="number" step="0.01" placeholder="5000" />
+            <select id="incomeFreq" style="max-width: 140px">
+              <option value="month">/ month</option>
+              <option value="year">/ year</option>
+            </select>
+          </div>
+          <div style="margin-top: 14px">
+            <button class="btn-primary" id="saveIncome">Save income</button>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat">
+              <div class="label">Income / month</div>
+              <div class="value" id="statIncome">$0</div>
+            </div>
+            <div class="stat spent">
+              <div class="label">Spent</div>
+              <div class="value" id="statSpent">$0</div>
+            </div>
+            <div class="stat left">
+              <div class="label">Left over</div>
+              <div class="value" id="statLeft">$0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="num">2</span>Breakdown</div>
+          <canvas id="chart"></canvas>
+          <div class="empty" id="chartEmpty" style="display: none">
+            No spending logged yet.
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px">
+        <div class="section-title"><span class="num">3</span>Add a spend</div>
+        <div class="row">
+          <div>
+            <label for="exName">What for</label>
+            <input id="exName" type="text" placeholder="Rent" />
+          </div>
+          <div>
+            <label for="exCat">Category</label>
+            <select id="exCat">
+              <option>Necessities</option>
+              <option>Debt</option>
+              <option>Retirement</option>
+              <option>Subscriptions</option>
+              <option>Fun</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="exAmt">Amount</label>
+            <input id="exAmt" type="number" step="0.01" placeholder="1000" />
+          </div>
+          <button class="btn-primary" id="addExpense">Add</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px">
+        <div class="section-title">
+          <span class="num">4</span>Your spending
+          <span style="flex: 1"></span>
+          <div class="toggle">
+            <button id="viewMonth" class="active">This month</button>
+            <button id="viewYear">This year</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>What for</th>
+              <th>Category</th>
+              <th style="text-align: right">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="expenseBody"></tbody>
+        </table>
+        <div class="empty" id="tableEmpty" style="display: none">
+          Nothing logged for this period yet add your first spend above.
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 14px">
+        <button class="btn-ghost" id="clearAll">Clear all data</button>
+      </div>
+
+      <footer>Saved locally in your browser · no account needed</footer>
+      <footer>Created by Vuth Sophany</footer>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "ledger_data_v1";
+      let data = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) ||
+          '{"income":0,"incomeFreq":"month","expenses":[]}',
+      );
+      let view = "month";
+      let chartInstance = null;
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function monthlyIncome() {
+        if (!data.income) return 0;
+        return data.incomeFreq === "year" ? data.income / 12 : data.income;
+      }
+
+      function fmt(n) {
+        return (
+          "$" +
+          (Math.round(n * 100) / 100).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+      }
+
+      function inPeriod(dateStr) {
+        const d = new Date(dateStr);
+        const now = new Date();
+        if (view === "month") {
+          return (
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
+        }
+        return d.getFullYear() === now.getFullYear();
+      }
+
+      function render() {
+        document.getElementById("income").value = data.income || "";
+        document.getElementById("incomeFreq").value =
+          data.incomeFreq || "month";
+
+        const periodExpenses = data.expenses.filter((e) => inPeriod(e.date));
+        const totalSpent = periodExpenses.reduce(
+          (s, e) => s + Number(e.amount),
+          0,
+        );
+        const incomeForPeriod =
+          view === "month" ? monthlyIncome() : monthlyIncome() * 12;
+
+        document.getElementById("statIncome").textContent =
+          fmt(monthlyIncome());
+        document.getElementById("statSpent").textContent = fmt(totalSpent);
+        document.getElementById("statLeft").textContent = fmt(
+          incomeForPeriod - totalSpent,
+        );
+
+        // table
+        const tbody = document.getElementById("expenseBody");
+        tbody.innerHTML = "";
+        const sorted = [...periodExpenses].sort(
+          (a, b) => new Date(b.date) - new Date(a.date),
+        );
+        document.getElementById("tableEmpty").style.display = sorted.length
+          ? "none"
+          : "block";
+        sorted.forEach((e) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+      <td>${new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
+      <td>${e.name}</td>
+      <td><span class="tag">${e.category}</span></td>
+      <td class="amt">${fmt(e.amount)}</td>
+      <td><button class="del" data-id="${e.id}">remove</button></td>
+    `;
+          tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll(".del").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            data.expenses = data.expenses.filter(
+              (e) => e.id !== btn.dataset.id,
+            );
+            save();
+            render();
+          });
+        });
+
+        // chart
+        const byCat = {};
+        periodExpenses.forEach((e) => {
+          byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
+        });
+        const labels = Object.keys(byCat);
+        const values = Object.values(byCat);
+        document.getElementById("chartEmpty").style.display = labels.length
+          ? "none"
+          : "block";
+
+        if (chartInstance) chartInstance.destroy();
+        if (labels.length) {
+          const ctx = document.getElementById("chart").getContext("2d");
+          chartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data: values,
+                  backgroundColor: [
+                    "#E8806B",
+                    "#5C7A5A",
+                    "#D9B65B",
+                    "#7A8FB0",
+                    "#B07AA8",
+                    "#A0A0A0",
+                  ],
+                  borderColor: "#FFFCF5",
+                  borderWidth: 3,
+                },
+              ],
+            },
+            options: {
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: {
+                    font: { family: "Inter", size: 12 },
+                    color: "#2B2620",
+                  },
+                },
+              },
+              cutout: "62%",
+            },
+          });
+        }
+      }
+
+      document.getElementById("saveIncome").addEventListener("click", () => {
+        data.income = Number(document.getElementById("income").value) || 0;
+        data.incomeFreq = document.getElementById("incomeFreq").value;
+        save();
+        render();
+      });
+
+      document.getElementById("addExpense").addEventListener("click", () => {
+        const name = document.getElementById("exName").value.trim();
+        const category = document.getElementById("exCat").value;
+        const amount = Number(document.getElementById("exAmt").value);
+        if (!name || !amount) {
+          return;
+        }
+        data.expenses.push({
+          id: Date.now() + "",
+          name,
+          category,
+          amount,
+          date: new Date().toISOString(),
+        });
+        save();
+        document.getElementById("exName").value = "";
+        document.getElementById("exAmt").value = "";
+        render();
+      });
+
+      document.getElementById("viewMonth").addEventListener("click", () => {
+        view = "month";
+        document.getElementById("viewMonth").classList.add("active");
+        document.getElementById("viewYear").classList.remove("active");
+        render();
+      });
+      document.getElementById("viewYear").addEventListener("click", () => {
+        view = "year";
+        document.getElementById("viewYear").classList.add("active");
+        document.getElementById("viewMonth").classList.remove("active");
+        render();
+      });
+
+      document.getElementById("clearAll").addEventListener("click", () => {
+        if (confirm("Clear all saved data? This cannot be undone.")) {
+          data = { income: 0, incomeFreq: "month", expenses: [] };
+          save();
+          render();
+        }
+      });
+
+      render();
+    </script>
+  </body>
+</html>
